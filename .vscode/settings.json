@@ -1,0 +1,16 @@
+{
+  "editor.tabSize": 2,
+  "editor.minimap.enabled": false,
+  "files.eol": "\n",
+  "files.trimFinalNewlines": true,
+  "files.trimTrailingWhitespace": true,
+  "googleTranslateExt.replaceText": true,
+  "material-icon-theme.showWelcomeMessage": false,
+  "gitlens.showWelcomeOnInstall": false,
+  "googleTranslateExt.languages": [
+    "en"
+  ],
+  "files.exclude": {
+    "**/node_modules/": true
+  }
+}
