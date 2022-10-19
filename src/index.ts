@@ -1,10 +1,18 @@
 #!/usr/bin/env node
+import { createInterface as readline } from "node:readline";
+import  * as bdsCore from "@the-bds-maneger/core";
+import utils from "node:util";
 import path from "node:path";
 import os from "node:os";
-import { createInterface as readline } from "node:readline";
 import Yargs from "yargs";
 import daemon from "./daemon";
-import  * as bdsCore from "@the-bds-maneger/core";
+import cliColors from "cli-color";
+
+function installUpdateMessage(data: {date: Date, id?: string, version: string, url?: string, isUpdate?: boolean}) {
+  const releaseDate = new Date(data?.date), day = releaseDate.getDay()>9?releaseDate.getDay().toFixed(0):"0"+releaseDate.getDay(), month = (releaseDate.getMonth()+1)>9?(releaseDate.getMonth()+1).toFixed(0):"0"+(releaseDate.getMonth()+1);
+  if (data?.isUpdate) console.log("Update Platform ID: %s\n\tVersion: %s, Release date: %s/%s/%s", data?.id, data?.version, day, month, releaseDate.getFullYear());
+  else console.log("Install Platform ID: %s\n\tVersion: %s, Release date: %s/%s/%s", data?.id, data?.version, day, month, releaseDate.getFullYear());
+}
 
 const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "help").wrap(Yargs.terminalWidth()).command("daemon", "Start daemon and listen port and socket", yargs => {
   const options = yargs.option("port", {
@@ -39,11 +47,12 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     const opts = yargs.option("version", {alias: "v", default: "latest"}).option("id", {alias: "i", type: "string", default: "default"}).option("platform", {demandOption: true}).parseSync();
     const request = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({platform: opts.platform, version: opts.version, platformOptions: {id: opts.id}})});
     return request(`http://unix:${opts.socket}:/install`).catch(() => request(`${opts.host}/install`)).then((data: {id: string, version: string, date: string, url: string}) => {
-      const releaseDate = new Date(data.date),
-        day = releaseDate.getDay()>9?releaseDate.getDay().toFixed(0):"0"+releaseDate.getDay(),
-        month = (releaseDate.getMonth()+1)>9?(releaseDate.getMonth()+1).toFixed(0):"0"+(releaseDate.getMonth()+1)
-      ;
-      console.log("Platform ID: %s\n\tVersion: %s, Release date: %s/%s/%s", data.id, data.version, day, month, releaseDate.getFullYear());
+      return installUpdateMessage({
+        date: new Date(data.date),
+        id: data.id,
+        version: data.version,
+        url: data.url
+      });
     });
   }).command("start", "Start minecraft server", async yargs => {
     const options = yargs.option("id", {type: "string", default: "default"}).option("platform", {demandOption: true, type: "string"}).option("interactive", {
@@ -94,7 +103,106 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     else return Promise.all(ids.map((id: string) => requestStop(id).then(console.log).catch(console.error)));
   }).parseAsync();
 }).command("local", "Run server localy", async yargs => {
-  return yargs.parseAsync();
+  return yargs.command("install", "Install server", async yargs => {
+    const options = yargs.option("platform", {
+      alias: "p",
+      type: "string",
+      demandOption: true
+    }).option("version", {
+      alias: "v",
+      type: "string",
+      default: "latest"
+    }).option("id", {
+      alias: "I",
+      type: "string",
+      default: "default"
+    }).option("newId", {
+      alias: "n",
+      type: "boolean",
+      default: false
+    }).parseSync();
+
+    return (async function(): Promise<any> {
+      // Bedrock
+      if (options.platform?.toLocaleLowerCase() === "bedrock") return bdsCore.Bedrock.installServer(options.version, {id: options.id, newId: options.newId});
+      // Java
+      else if (options.platform?.toLocaleLowerCase() === "java") return bdsCore.Java.installServer(options.version, {id: options.id, newId: options.newId});
+      // Pocketmine-MP
+      else if ((["pocketmine", "pocketminemp"]).includes(options.platform?.toLocaleLowerCase())) return bdsCore.PocketmineMP.installServer(options.version, {id: options.id, newId: options.newId});
+      // Spigot
+      else if (options.platform?.toLocaleLowerCase() === "spigot") return bdsCore.Spigot.installServer(options.version, {id: options.id, newId: options.newId});
+      // Powernukkit
+      else if (options.platform?.toLocaleLowerCase() === "powernukkit") return bdsCore.Powernukkit.installServer(options.version, {id: options.id, newId: options.newId});
+      // PaperMC
+      else if ((["paper", "papermc"]).includes(options.platform?.toLocaleLowerCase())) return bdsCore.PaperMC.installServer(options.version, {id: options.id, newId: options.newId});
+      // Throw
+      else throw new Error("Invalid platform!");
+    })().then(data => installUpdateMessage(data));
+  }).command("start", "Start server", async yargs => {
+    const options = yargs.option("platform", {
+      alias: "p",
+      type: "string",
+      demandOption: true,
+    }).option("id", {
+      alias: "I",
+      type: "string",
+      default: "default"
+    }).option("maxMemory", {
+      alias: "m",
+      type: "boolean",
+      default: true,
+      description: "On java severs, use all free memory to run server"
+    }).option("update", {
+      alias: "u",
+      type: "string",
+      description: "Update Server after start Server"
+    }).parseSync();
+    return (async function(){
+      // Bedrock
+      if (options.platform?.toLocaleLowerCase() === "bedrock") {
+        if (options.update) await bdsCore.Bedrock.installServer(options.update, {id: options.id}).then(data => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.Bedrock.startServer({id: options.id});
+      }
+      // Pocketmine-MP
+      else if ((["pocketmine", "pocketminemp"]).includes(options.platform?.toLocaleLowerCase())) {
+        if (options.update) await bdsCore.PocketmineMP.installServer(options.update, {id: options.id}).then(data => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.PocketmineMP.startServer({id: options.id});
+      }
+      // Java
+      else if (options.platform?.toLocaleLowerCase() === "java") {
+        if (options.update) await bdsCore.Java.installServer(options.update, {id: options.id}).then(data => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.Java.startServer({platformOptions: {id: options.id}, maxFreeMemory: options.maxMemory});
+      }
+      // Spigot
+      else if (options.platform?.toLocaleLowerCase() === "spigot") {
+        if (options.update) await bdsCore.Spigot.installServer(options.update, {id: options.id}).then((data: any) => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.Spigot.startServer({platformOptions: {id: options.id}, maxFreeMemory: options.maxMemory});
+      }
+      // Powernukkit
+      else if (options.platform?.toLocaleLowerCase() === "powernukkit") {
+        if (options.update) await bdsCore.Powernukkit.installServer(options.update, {id: options.id}).then(data => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.Powernukkit.startServer({platformOptions: {id: options.id}, maxFreeMemory: options.maxMemory});
+      }
+      // PaperMC
+      else if ((["paper", "papermc"]).includes(options.platform?.toLocaleLowerCase())) {
+        if (options.update) await bdsCore.PaperMC.installServer(options.update, {id: options.id}).then(data => installUpdateMessage({...data, isUpdate: true}));
+        return bdsCore.PaperMC.startServer({platformOptions: {id: options.id}, maxFreeMemory: options.maxMemory});
+      }
+      // Throw
+      else throw new Error("Invalid platform!");
+    })().then(server => {
+      const line = readline({input: process.stdin, output: process.stdout});
+      server.events.on("log_stderr", data => console.log(cliColors.redBright(data)));
+      server.events.on("log_stdout", data => console.log(cliColors.greenBright(data)));
+      server.events.on("exit", data => console.info("Server exit with %s, signal: %s", data.code, data.signal));
+      line.on("line", line => server.runCommand(line));
+      line.once("SIGINT", () => server.stopServer());
+      line.once("SIGCONT", () => server.stopServer());
+      line.once("SIGTSTP", () => server.stopServer());
+      server.events.once("exit", () => line.close());
+      return server.waitExit();
+    })
+  }).command("ls", "List IDs and Platforms installed", () => bdsCore.platformPathManeger.getIds().then(data => Object.keys(data).map(key => utils.format(cliColors.blueBright("Platform: %s\n  %s"), key.charAt(0).toUpperCase() + key.slice(1), data[key].length===0?cliColors.redBright("No Installs"):cliColors.greenBright("ID: "+data[key].join("\n  ID: "))))).then(Print => console.log(Print.join("\n\n"), "\n"))).parseAsync();
 });
 
 yargs.command({command: "*", handler: () => {yargs.showHelp();}}).parseAsync();

@@ -4,5 +4,7 @@ services:
     hostname: bdsd
     restart: on-failure
     network_mode: host
+    volumes:
+      - ~/.bdsManeger:/data
     ports:
       - 3000:3000/tcp
