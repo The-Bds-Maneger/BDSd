@@ -1,21 +1,21 @@
 {
-  "name": "base_typescript",
-  "version": "1.0.0",
-  "description": "Replace",
-  "main": "dist/index.js",
-  "types": "./dist/index.d.ts",
+  "name": "@the-bds-maneger/bdsd",
+  "version": "0.1.0",
+  "description": "Daemon and CLI to maneger You Minecraft Server",
+  "main": "src/index.js",
+  "types": "./src/index.d.ts",
   "private": false,
   "type": "commonjs",
-  "homepage": "https://github.com/Sirherobrine23/base_typescript#readme",
+  "homepage": "https://github.com/Sirherobrine23/bdsd#readme",
   "author": "Matheus Sampaio Queiroga <srherobrine20@gmail.com> (https://sirherobrine23.org/)",
   "license": "GPL-2.0-only",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sirherobrine23/base_typescript.git"
+    "url": "git+https://github.com/Sirherobrine23/bdsd.git"
   },
   "keywords": [],
   "bugs": {
-    "url": "https://github.com/Sirherobrine23/base_typescript/issues"
+    "url": "https://github.com/Sirherobrine23/bdsd/issues"
   },
   "sponsor": {
     "url": "https://github.com/sponsors/Sirherobrine23"
@@ -27,11 +27,23 @@
     "node": ">=14.0.0"
   },
   "scripts": {
+    "build": "tsc",
     "start": "ts-node src/index.ts"
   },
+  "bin": {
+    "bdsd": "./src/index.js"
+  },
   "devDependencies": {
-    "@types/node": "^18.7.6",
+    "@types/express": "^4.17.14",
+    "@types/node": "^18.11.2",
+    "@types/yargs": "^17.0.13",
     "ts-node": "^10.9.1",
-    "typescript": "^4.7.4"
+    "typescript": "^4.8.4"
+  },
+  "dependencies": {
+    "@the-bds-maneger/core": "^5.1.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^6.6.0",
+    "yargs": "^17.6.0"
   }
 }

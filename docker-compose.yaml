@@ -1,0 +1,8 @@
+services:
+  bdsd:
+    build: ./
+    hostname: bdsd
+    restart: on-failure
+    network_mode: host
+    ports:
+      - 3000:3000/tcp
