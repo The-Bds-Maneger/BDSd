@@ -1,6 +1,6 @@
 {
   "name": "@the-bds-maneger/bdsd",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Daemon and CLI to maneger You Minecraft Server",
   "main": "src/index.js",
   "types": "./src/index.d.ts",
