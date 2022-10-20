@@ -92,6 +92,4 @@ jobs:
         push: true
         tags: |
           ghcr.io/the-bds-maneger/bdsd:latest
-          ghcr.io/the-bds-maneger/container:latest
           ghcr.io/the-bds-maneger/bdsd:v${{ env.PACKAGE_VERSION }}
-          ghcr.io/the-bds-maneger/container:v${{ env.PACKAGE_VERSION }}
