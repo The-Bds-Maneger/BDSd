@@ -29,9 +29,18 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     type: "boolean",
     description: "Enable auth to HTTP/HTTPs API",
     default: false,
+  }).option("chmod", {
+    alias: "c",
+    type: "string",
+    default: "a+rw"
   }).parseSync();
   process.title = `Minecraft Server Deamon, socket: ${options.socket}${options.port?", Port: "+options.port:""}`;
-  return daemon({socket: options.socket, auth_key: options.auth_key, port: options.port});
+  return daemon({
+    socket: options.socket,
+    auth_key: options.auth_key,
+    port: options.port,
+    chmod: options.chmod
+  });
 }).command("server", "Maneger server in daemon", yargs => {
   return yargs.option("socket", {
     alias: "S",

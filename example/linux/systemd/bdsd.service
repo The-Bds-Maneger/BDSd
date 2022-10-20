@@ -1,0 +1,12 @@
+[Unit]
+Description=Daemon and CLI to maneger You Minecraft Server
+After=network.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/bin/bdsd daemon --socket /var/run/bdsd.sock
+ExecReload=/bin/rm -fv /var/run/bdsd.sock
+Restart=on-failure
+Type=notify

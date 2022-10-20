@@ -1,7 +1,7 @@
 import os from "node:os";
 import express from "express";
 import expressRateLimit from "express-rate-limit";
-import fs from "node:fs";
+import fs, { Mode } from "node:fs";
 import fsPromise from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -17,7 +17,7 @@ const requests = new Prometheus.Counter({
   labelNames: ["method", "from", "path"]
 });
 
-export default function app(options: {socket: string, port?: number, auth_key: boolean}) {
+export default function app(options: {socket: string, port?: number, auth_key: boolean, chmod?: Mode}) {
   const app = express();
   app.disable("x-powered-by").disable("etag");
   app.use(express.json());
@@ -56,7 +56,10 @@ export default function app(options: {socket: string, port?: number, auth_key: b
 
   // Listen socks
   if (fs.existsSync(options.socket)) fs.rmSync(options.socket, {force: true});
-  app.listen(options.socket, function () {console.info("Socket listen on '%s'", this.address());});
+  app.listen(options.socket, async function () {
+    if (options.chmod) await fsPromise.chmod(options.socket, options.chmod);
+    console.info("Socket listen on '%s'", this.address());
+  });
   if (options.port) {
     const bdsdAuth = path.join(bdsCore.platformPathManeger.bdsRoot, "bdsd_auth.json");
     app.use(async (req, res, next) => {
