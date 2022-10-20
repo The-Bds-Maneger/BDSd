@@ -23,7 +23,7 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     alias: "S",
     type: "string",
     description: "unix socket listen",
-    default: path.join(os.tmpdir(), "bdsd.sock"),
+    default: process.env.BDSD_SOCKET?path.resolve(process.env.BDSD_SOCKET):path.join(os.tmpdir(), "bdsd.sock"),
   }).option("auth_key", {
     alias: "a",
     type: "boolean",
@@ -101,6 +101,9 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     const requestStop = (id?: string) => bdsCore.httpRequest.getJSON(`${options.host}/stop${id?"":"/all"}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})}).catch(() => bdsCore.httpRequest.getJSON(`http://unix:${options.socket}:/stop${id?"":"/all"}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})}));
     if (ids.length === 0) return requestStop().then((data: {id: string, exitCode: number}[]) => data.forEach(data => console.log("Server ID: %s\n\tCode Exit: %f", data.id, data.exitCode)));
     else return Promise.all(ids.map((id: string) => requestStop(id).then(console.log).catch(console.error)));
+  }).command("migrate", "Migrate your existing servers to the daemon", async yargs => {
+    yargs.parseSync();
+    throw new Error("Under construction, wait for the next version");
   }).parseAsync();
 }).command("local", "Run server localy", async yargs => {
   return yargs.command("install", "Install server", async yargs => {
