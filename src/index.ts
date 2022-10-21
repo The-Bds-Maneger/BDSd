@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createInterface as readline } from "node:readline";
-import  * as bdsCore from "@the-bds-maneger/core";
+import * as bdsCore from "@the-bds-maneger/core";
 import utils from "node:util";
 import path from "node:path";
 import os from "node:os";
@@ -83,7 +83,7 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     const request = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({platform: options.platform, version: options.version, platformOptions: {id: options.id}})});
     return request(`${options.host}/`).catch(() => request(`http://unix:${options.socket}:/`)).then(({id}) => {
       console.log("Server ID: %s", id);
-      if (options.tty) console.warn("Not yet implemented!");
+      if (options.tty) bdsCore.httpRequest.pipeFetch({stream: process.stdout as any, path: `/log/${id}?noClose=true`, url: options.host}).catch(() => bdsCore.httpRequest.pipeFetch({stream: process.stdout as any, path: `/log/${id}?noClose=true`, socket: {path: options.socket, protocoll: "http"}}));
       if (options.interactive) {
         const sendCommand = (url: string, commands: any) => bdsCore.httpRequest.getJSON(url, {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id, commands})});
         const requestStop = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})});

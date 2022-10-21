@@ -57,7 +57,7 @@ export default function app(options: {socket: string, port?: number, auth_key: b
   // Listen socks
   if (fs.existsSync(options.socket)) fs.rmSync(options.socket, {force: true});
   app.listen(options.socket, async function () {
-    if (options.chmod) await fsPromise.chmod(options.socket, options.chmod);
+    // if (options.chmod) await fsPromise.chmod(options.socket, options.chmod);
     console.info("Socket listen on '%s'", this.address());
   });
   if (options.port) {
