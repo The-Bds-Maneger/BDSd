@@ -43,7 +43,7 @@
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "@the-bds-maneger/core": "^5.1.4",
+    "@the-bds-maneger/core": "^5.1.6",
     "cli-color": "^2.0.3",
     "express": "^4.18.2",
     "express-rate-limit": "^6.6.0",
