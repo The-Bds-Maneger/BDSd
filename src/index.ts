@@ -14,6 +14,74 @@ function installUpdateMessage(data: {date: Date, id?: string, version: string, u
   else console.log("Install Platform ID: %s\n\tVersion: %s, Release date: %s/%s/%s", data?.id, data?.version, day, month, releaseDate.getFullYear());
 }
 
+function daemonRequest(host: string, socketPath: string) {
+  async function post(requestPath: string, body?: any) {
+    return bdsCore.httpRequest.getJSON({
+      method: "POST",
+      socket: {
+        socketPath,
+        path: requestPath
+      },
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }).catch(() => bdsCore.httpRequest.getJSON({
+      method: "POST",
+      url: host+requestPath,
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }));
+  }
+
+  async function get(requestPath: string, body?: any) {
+    return bdsCore.httpRequest.getJSON({
+      socket: {
+        socketPath,
+        path: requestPath
+      },
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }).catch(() => bdsCore.httpRequest.getJSON({
+      url: host+requestPath,
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }));
+  }
+
+  async function put(requestPath: string, body?: any) {
+    return bdsCore.httpRequest.getJSON({
+      method: "PUT",
+      socket: {
+        socketPath,
+        path: requestPath
+      },
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }).catch(() => bdsCore.httpRequest.getJSON({
+      method: "PUT",
+      url: host+requestPath,
+      headers: {"Content-Type": "application/json"},
+      body: body||{}
+    }));
+  }
+
+  async function stream(requestPath: string, stream?: any, method: bdsCore.httpRequest.requestOptions["method"] = "GET") {
+    return bdsCore.httpRequest.pipeFetch({
+      stream, method,
+      socket: {
+        socketPath,
+        path: requestPath
+      },
+      headers: {"Content-Type": "application/json"}
+    }).catch(() => bdsCore.httpRequest.pipeFetch({
+      url: host+requestPath,
+      stream, method,
+      headers: {"Content-Type": "application/json"}
+    }));
+  }
+
+  return {post, get, put, stream};
+}
+
 const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "help").wrap(Yargs.terminalWidth()).command("daemon", "Start daemon and listen port and socket", yargs => {
   const options = yargs.option("port", {
     alias: "p",
@@ -51,18 +119,16 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
     alias: "H",
     type: "string",
     description: "HTTP/HTTPs host if unix socket not exists",
-    default: "http://127.0.0.0:9074",
+    default: "http://localhost:9074",
   }).command("install", "Download and Install server to folder", async yargs => {
     const opts = yargs.option("version", {alias: "v", default: "latest"}).option("id", {alias: "i", type: "string", default: "default"}).option("platform", {demandOption: true}).parseSync();
-    const request = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({platform: opts.platform, version: opts.version, platformOptions: {id: opts.id}})});
-    return request(`http://unix:${opts.socket}:/install`).catch(() => request(`${opts.host}/install`)).then((data: {id: string, version: string, date: string, url: string}) => {
-      return installUpdateMessage({
-        date: new Date(data.date),
-        id: data.id,
-        version: data.version,
-        url: data.url
-      });
-    });
+    const { post } = daemonRequest(opts.host, opts.socket);
+    return post("/install", {platform: opts.platform, version: opts.version, platformOptions: {id: opts.id}}).then((data: {id: string, version: string, date: string, url: string}) => installUpdateMessage({
+      date: new Date(data.date),
+      id: data.id,
+      version: data.version,
+      url: data.url
+    }));
   }).command("start", "Start minecraft server", async yargs => {
     const options = yargs.option("id", {type: "string", default: "default"}).option("platform", {demandOption: true, type: "string"}).option("interactive", {
       alias: "i",
@@ -80,36 +146,49 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
       type: "boolean",
       description: "If interactive (-i) stop server if press ctrl+c (close server)"
     }).parseSync();
-    const request = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({platform: options.platform, version: options.version, platformOptions: {id: options.id}})});
-    return request(`${options.host}/`).catch(() => request(`http://unix:${options.socket}:/`)).then(({id}) => {
+    const { post, put, stream } = daemonRequest(options.host, options.socket);
+    return post("/", {platform: options.platform, version: options.version, platformOptions: {id: options.id}}).then(({id}) => {
       console.log("Server ID: %s", id);
-      if (options.tty) bdsCore.httpRequest.pipeFetch({stream: process.stdout as any, path: `/log/${id}?noClose=true`, url: options.host}).catch(() => bdsCore.httpRequest.pipeFetch({stream: process.stdout as any, path: `/log/${id}?noClose=true`, socket: {path: options.socket, protocoll: "http"}}));
       if (options.interactive) {
-        const sendCommand = (url: string, commands: any) => bdsCore.httpRequest.getJSON(url, {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id, commands})});
-        const requestStop = (url: string) => bdsCore.httpRequest.getJSON(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})});
         const line = readline({input: process.stdin, output: process.stdout});
-        line.on("line", data => sendCommand(`http://unix:${options.socket}:/`, data).catch(() => sendCommand(`${options.host}/`, data)));
+        line.on("line", data => put("/", {id, commands: data}));
         if (options.stopOnClose) {
-          line.once("SIGINT", () => requestStop(`http://unix:${options.socket}:/stop`).catch(() => requestStop(`${options.host}/stop`)).then(() => line.close()));
-          line.once("SIGCONT", () => requestStop(`http://unix:${options.socket}:/stop`).catch(() => requestStop(`${options.host}/stop`)).then(() => line.close()));
-          line.once("SIGTSTP", () => requestStop(`http://unix:${options.socket}:/stop`).catch(() => requestStop(`${options.host}/stop`)).then(() => line.close()));
+          line.once("SIGINT", () => post("/stop", {id}).catch(() => null).then(() => line.close()));
+          line.once("SIGCONT", () => post("/stop", {id}).catch(() => null).then(() => line.close()));
+          line.once("SIGTSTP", () => post("/stop", {id}).catch(() => null).then(() => line.close()));
         }
+        if (options.tty) stream(`/log/${id}?noClose=true`, process.stdout).catch(() => undefined).then(() => line.emit("SIGINT"));
       }
     });
   }).command("attach", "attach to runnnig server", async yargs => {
     const options = yargs.option("stopOnClose", {
       alias: "n",
-      default: true,
+      default: false,
       type: "boolean",
       description: "Stop server if press ctrl+c (close server)"
+    }).option("id", {
+      alias: "i",
+      type: "string",
+      demandOption: true,
+      description: "Target server id"
     }).parseSync();
-    return options;
+    const { post, put, stream } = daemonRequest(options.host, options.socket);
+    const line = readline({input: process.stdin, output: process.stdout});
+    line.on("line", data => put("/", {id: options.id, commands: data}));
+    stream(`/log/${options.id}?noClose=true`, process.stdout).catch(() => undefined).then(() => line.emit("SIGINT"));
+    const close = async () => {
+      if (options.stopOnClose) await post("/stop", {id: options.id}).catch(() => null);
+      return line.close();
+    }
+    line.once("SIGINT", close);
+    line.once("SIGCONT", close);
+    line.once("SIGTSTP", close);
   }).command("stop", "Stop server if not infomed IDs stop all", async yargs => {
     const options = yargs.parseSync();
+    const { post } = daemonRequest(options.host, options.socket);
     const [,, ...ids] = options._;
-    const requestStop = (id?: string) => bdsCore.httpRequest.getJSON(`${options.host}/stop${id?"":"/all"}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})}).catch(() => bdsCore.httpRequest.getJSON(`http://unix:${options.socket}:/stop${id?"":"/all"}`, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({id})}));
-    if (ids.length === 0) return requestStop().then((data: {id: string, exitCode: number}[]) => data.forEach(data => console.log("Server ID: %s\n\tCode Exit: %f", data.id, data.exitCode)));
-    else return Promise.all(ids.map((id: string) => requestStop(id).then(console.log).catch(console.error)));
+    if (ids.length >= 1) return Promise.all(ids.map((id: string) => post("/stop", {id}).then(data => console.log("Server ID: %s\n\tCode Exit: %f", id, data.exitCode)).catch(console.error)));
+    return post("/stop/all").then((data: {id: string, exitCode: number}[]) => data.forEach(data => console.log("Server ID: %s\n\tCode Exit: %f", data.id, data.exitCode)));
   }).command("migrate", "Migrate your existing servers to the daemon", async yargs => {
     yargs.parseSync();
     throw new Error("Under construction, wait for the next version");
@@ -217,4 +296,8 @@ const yargs = Yargs(process.argv.slice(2)).help().version(false).alias("h", "hel
   }).command("ls", "List IDs and Platforms installed", () => bdsCore.platformPathManeger.getIds().then(data => Object.keys(data).map(key => utils.format(cliColors.blueBright("Platform: %s\n  %s"), key.charAt(0).toUpperCase() + key.slice(1), data[key].length===0?cliColors.redBright("No Installs"):cliColors.greenBright("ID: "+data[key].join("\n  ID: "))))).then(Print => console.log(Print.join("\n\n"), "\n"))).parseAsync();
 });
 
-yargs.command({command: "*", handler: () => {yargs.showHelp();}}).parseAsync();
+yargs.command({command: "*", handler: () => {yargs.showHelp();}}).parseAsync().catch((err) => {
+  console.error("Error: %s", err?.message||err);
+  console.error("Error:", err?.options?.body);
+  process.exit(1);
+});

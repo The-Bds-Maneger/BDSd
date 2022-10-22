@@ -100,9 +100,12 @@ export default function app(options: {socket: string, port?: number, auth_key: b
 
   // Errors pages
   app.all("*", (req, res) => res.status(404).json({error: "Page not found", path: req.path}));
-  app.use((error, _1, res, _3) => res.status(500).json({
-    internalError: error?.message||error?.name||String(error),
-  }));
+  app.use((error, _1, res, _3) => {
+    console.log("Internal Error:", error);
+    return res.status(500).setHeader("Content-Type", "application/json").json({
+      internalError: error?.message||error?.name||String(error),
+    })
+  });
 
   return app;
 };
