@@ -6,7 +6,7 @@ After=network.target
 WantedBy=multi-user.target
 
 [Service]
-ExecStart=/bin/bdsd daemon --socket /var/run/bdsd.sock
-ExecReload=/bin/rm -fv /var/run/bdsd.sock
+ExecStart=/bin/bdsd daemon
+ExecStop=/bin/bdsd server stop
 Restart=on-failure
-Type=notify
+Type=simple
