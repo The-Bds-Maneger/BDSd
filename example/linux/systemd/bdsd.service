@@ -1,12 +1,12 @@
 [Unit]
-Description=Daemon and CLI to maneger You Minecraft Server
 After=network.target
+Description=Daemon and CLI to maneger You Minecraft Server
 
 [Install]
 WantedBy=multi-user.target
 
 [Service]
-ExecStart=/bin/bdsd daemon
+Type=exec
+Restart=always
+ExecStart=/bin/bdsd server daemon --auth_key --port 39074
 ExecStop=/bin/bdsd server stop
-Restart=on-failure
-Type=simple
