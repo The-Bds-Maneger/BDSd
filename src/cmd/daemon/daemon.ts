@@ -7,8 +7,8 @@ import fsPromise from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import app_v2 from "./api/v2";
-import { app_v1 } from "./api/v1";
 import ui from "./api/ui/index";
+import { app_v1 } from "./api/v1";
 import { Server } from "socket.io";
 import * as bdsCore from "@the-bds-maneger/core";
 import * as Prometheus from "prom-client";
@@ -43,37 +43,6 @@ export default async function app(options: {socket: string, port?: number, auth_
   const httpServer = http.createServer(app);
   const socket = http.createServer(app);
   const io = new Server(httpServer);
-
-  if (options.port) {
-    httpServer.listen(options.port, () => console.info("HTTP listen on http://127.0.0.1:%s", options.port));
-    // Socket.io
-    io.use(async (socket, next) => {
-      if (!options.auth_key) {console.warn("Bdsd ignore auth key!"); return next();}
-      const { handshake } = socket;
-      console.log(handshake.address, handshake.auth);
-      if (await auth(handshake.auth.pub)) return next();
-      return next(new Error("Auth invalid"));
-    });
-
-    // Express
-    app.use(async (req, res, next) => {
-      if (!options.auth_key) {console.warn("Bdsd ignore auth key!"); return next();}
-      // Allow by default socket
-      if (!req.socket.remoteAddress && !req.socket.remotePort) return next();
-
-      if (await auth(req.headers.authorization?.replace(/^.*\s+/, ""))) return next();
-      return res.status(400).json({
-        error: "Invalid auth or incorret public key"
-      });
-    });
-  }
-
-  // Listen socks
-  if (fs.existsSync(options.socket)) fs.rmSync(options.socket, {force: true});
-  socket.listen(options.socket, async function () {
-    // if (options.chmod) await fsPromise.chmod(options.socket, options.chmod);
-    console.info("Socket listen on '%s'", this.address());
-  });
 
   // App Route
   app.disable("x-powered-by").disable("etag").use(express.json()).use(express.urlencoded({extended: true}));
@@ -110,7 +79,8 @@ export default async function app(options: {socket: string, port?: number, auth_
   });
 
   // API Routes
-  app.all("/ui", await ui("/ui"));
+  app.all(/^\/ui(|.*)/, await ui("/ui"));
+  app.get("/", ({res}) => res.redirect("/ui"));
   app.use("/v1", app_v1);
   app.use("/v2", app_v2);
   app.use("/", app_v2);
@@ -122,6 +92,37 @@ export default async function app(options: {socket: string, port?: number, auth_
     return res.status(500).setHeader("Content-Type", "application/json").json({
       internalError: error?.message||error?.name||String(error),
     })
+  });
+
+  if (options.port) {
+    httpServer.listen(options.port, () => console.info("HTTP listen on http://127.0.0.1:%s", options.port));
+    // Socket.io
+    io.use(async (socket, next) => {
+      if (!options.auth_key) return next();
+      const { handshake } = socket;
+      console.log(handshake.address, handshake.auth);
+      if (await auth(handshake.auth.pub)) return next();
+      return next(new Error("Auth invalid"));
+    });
+
+    // Express
+    app.use(async (req, res, next) => {
+      if (!options.auth_key) return next();
+      // Allow by default socket
+      if (!req.socket.remoteAddress && !req.socket.remotePort) return next();
+
+      if (await auth(req.headers.authorization?.replace(/^.*\s+/, ""))) return next();
+      return res.status(400).json({
+        error: "Invalid auth or incorret public key"
+      });
+    });
+  }
+
+  // Listen socks
+  if (fs.existsSync(options.socket)) fs.rmSync(options.socket, {force: true});
+  socket.listen(options.socket, async function () {
+    // if (options.chmod) await fsPromise.chmod(options.socket, options.chmod);
+    console.info("Socket listen on '%s'", this.address());
   });
 
   return app;

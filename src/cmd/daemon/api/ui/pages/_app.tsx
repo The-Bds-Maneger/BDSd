@@ -6,6 +6,7 @@ export default function MinecraftApkIndex({ Component, pageProps }: AppProps) {
     <>
       <Head>
         <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+        <title>BDSd Web UI</title>
       </Head>
       <div>
         <Component {...pageProps} />
@@ -13,4 +14,3 @@ export default function MinecraftApkIndex({ Component, pageProps }: AppProps) {
     </>
   )
 }
-

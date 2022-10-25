@@ -9,9 +9,9 @@ export default async function main_ui(routePath: string) {
       basePath: routePath
     }
   });
-  await nextApp.prepare();
   const handle = nextApp.getRequestHandler();
-  const app = Router();
+  const app = Router()
   app.all("*", handle as any);
+  await nextApp.prepare();
   return app;
 }

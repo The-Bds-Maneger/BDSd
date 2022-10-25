@@ -6,3 +6,7 @@ node_modules/
 src/**/*.d.ts
 src/**/*.js
 tsconfig.tsbuildinfo
+
+# UI
+src/cmd/daemon/api/ui/.next
+!src/cmd/daemon/api/ui/next-env.d.ts
