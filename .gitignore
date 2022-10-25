@@ -5,3 +5,4 @@ node_modules/
 # Typescript
 src/**/*.d.ts
 src/**/*.js
+tsconfig.tsbuildinfo

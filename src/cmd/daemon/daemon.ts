@@ -8,6 +8,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import app_v2 from "./api/v2";
 import { app_v1 } from "./api/v1";
+import ui from "./api/ui/index";
 import { Server } from "socket.io";
 import * as bdsCore from "@the-bds-maneger/core";
 import * as Prometheus from "prom-client";
@@ -37,7 +38,7 @@ async function auth(Auth: string) {
   return false;
 }
 
-export default function app(options: {socket: string, port?: number, auth_key: boolean, chmod?: Mode}) {
+export default async function app(options: {socket: string, port?: number, auth_key: boolean, chmod?: Mode}) {
   const app = express();
   const httpServer = http.createServer(app);
   const socket = http.createServer(app);
@@ -109,6 +110,7 @@ export default function app(options: {socket: string, port?: number, auth_key: b
   });
 
   // API Routes
+  app.all("/ui", await ui("/ui"));
   app.use("/v1", app_v1);
   app.use("/v2", app_v2);
   app.use("/", app_v2);
