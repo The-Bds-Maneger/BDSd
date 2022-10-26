@@ -3,12 +3,12 @@ import bdsCore from "@the-bds-maneger/core";
 import Link from "next/link";
 
 export default function Home({ids}: InferGetStaticPropsType<typeof getServerSideProps>) {
-  if (ids.length === 0) return <div>
+  return <div>
     <h1>No Sessions IDs</h1>
     <form onSubmit={e => {
       e.preventDefault();
       const platform = e.currentTarget.querySelector("select").value;
-      fetch("/v2", {
+      fetch("/v2/install", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({platform})
@@ -25,12 +25,6 @@ export default function Home({ids}: InferGetStaticPropsType<typeof getServerSide
       <button type="submit">Start</button>
     </form>
   </div>;
-
-  return <div>{ids.map((id) => {
-    const url = `/control/${id}`;
-    return <Link href={url}><a>{id}</a></Link>;
-  })
-  }</div>;
 }
 
 export async function getServerSideProps(context: NextPageContext) {

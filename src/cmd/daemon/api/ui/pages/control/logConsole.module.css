@@ -12,9 +12,13 @@
 }
 
 .log {
-  margin-top: 12px;
-  height: 80vh;
-  margin-right: -0.5vw;
-  overflow: scroll;
   font-family: minecraft, minecraft-bold, minecarft-regular;
+  margin-top: 12px;
+  /* margin-right: -0.5vw; */
+  height: 80vh;
+  overflow: scroll;
+}
+
+.command input[type="text"] {
+  width: 54vw;
 }

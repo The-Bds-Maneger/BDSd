@@ -1,7 +1,7 @@
 import type { AppProps } from "next/app";
 import Head from "next/head";
 
-export default function MinecraftApkIndex({ Component, pageProps }: AppProps) {
+export default function MainAPP({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>

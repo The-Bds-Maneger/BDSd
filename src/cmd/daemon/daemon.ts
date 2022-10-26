@@ -46,6 +46,11 @@ export default async function app(options: {socket: string, port?: number, auth_
 
   // App Route
   app.disable("x-powered-by").disable("etag").use(express.json()).use(express.urlencoded({extended: true}));
+  app.use((req, res, next) => {
+    req["io"] = io;
+    res["io"] = io;
+    next();
+  });
   app.use(({ res, next }) => { res.json = (body: any) => res.setHeader("Content-Type", "application/json").send(JSON.stringify(body, null, 2)); return next(); });
   app.get("/metrics", async ({res, next}) => Prometheus.register.metrics().then(data => res.set("Content-Type", Prometheus.register.contentType).send(data)).catch(err => next(err)));
   app.use((req, _, next) => {requests.inc({method: req.method, path: req.path, from: !(req.socket.remoteAddress&&req.socket.remotePort)?"socket":req.protocol});next();});

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import express from "express";
 import * as bdsCore from "@the-bds-maneger/core";
+import { Server } from "socket.io";
 const app = express.Router();
 export default app;
 
@@ -66,15 +67,31 @@ app.post("/install", (req, res, next) => {
 
 app.post("/", (req, res, next) => {
   if (!req.body) req.body = {};
-  if (!req.body.platform) return res.status(400).json({error: "Informs a platform to start the server"});
-  else if (bedrock.includes(req.body.platform)) return bdsCore.Bedrock.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else if (java.includes(req.body.platform)) return bdsCore.Java.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else if (spigot.includes(req.body.platform)) return bdsCore.Spigot.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else if (powernukkit.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else if (paper.includes(req.body.platform)) return bdsCore.PaperMC.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else if (pocketmine.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).then(data => res.status(200).json({id: data.id, platform: data.platform})).catch(err => next(err));
-  else return res.status(400).json({
-    error: "Invalid platform"
+  (async () => {
+    if (!req.body.platform) return res.status(400).json({error: "Informs a platform to start the server"});
+    else if (bedrock.includes(req.body.platform)) return bdsCore.Bedrock.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (java.includes(req.body.platform)) return bdsCore.Java.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (spigot.includes(req.body.platform)) return bdsCore.Spigot.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (powernukkit.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (paper.includes(req.body.platform)) return bdsCore.PaperMC.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (pocketmine.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).catch(err => next(err));
+    else return res.status(400).json({
+      error: "Invalid platform"
+    });
+  })().then((data: bdsCore.globalPlatfroms.serverActionV2) => {
+    if (data.id) {
+      const {id} = data;
+      const io: Server = req["io"];
+      res.status(200).json({
+        id: data.id,
+        platform: data.platform
+      });
+      data.events.on("log", data => io.emit("log", {id, data}));
+      data.events.on("portListening", data => io.emit("portListening", {id, data}));
+      data.events.on("playerConnect", data => io.emit("playerConnect", {id, data}));
+      data.events.on("playerUnknown", data => io.emit("playerUnknown", {id, data}));
+      data.events.on("playerDisconnect", data => io.emit("playerDisconnect", {id, data}));
+    }
   });
 });
 
