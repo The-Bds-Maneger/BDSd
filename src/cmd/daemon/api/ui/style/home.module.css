@@ -1,0 +1,25 @@
+.platformID {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-evenly;
+}
+
+.platfornCard {
+  /* height: 13vh; */
+  width: 28%;
+  background-color: #1c1c1c;
+  border-radius: 6px;
+  padding: 8px;
+}
+
+/* Server Started */
+.platfornCard[id="running"] {
+  background-color: #00ff00;
+}
+
+/* Server Started */
+.platfornCard[id="stoped"] {
+  background-color: #ff0000;
+}

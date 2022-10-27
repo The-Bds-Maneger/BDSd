@@ -1,0 +1,57 @@
+.log {
+  height: 70vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: ridge 0.1px #1e2338;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 1rem;
+  background-color: #0d0a27;
+}
+.logLine {
+  padding-bottom: 2px;
+}
+.command {
+  display: flex;
+  justify-content: space-around;
+}
+
+.command input[type="text"] {
+  width: 85vw;
+  height: 24px;
+  font-size: 16px;
+}
+
+.command button {
+  width: 10vw;
+  font-size: 16px;
+}
+
+.actionButton {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px;
+  padding-top: 24px;
+}
+
+.actionButton .customButton {
+  background-color: #95959547;
+  height: 36px;
+  width: 32%;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.customButton:hover {
+  cursor: pointer;
+}
+
+@media only screen and (max-width: 1000px) {
+  .command button[type="submit"] {
+    display: none;
+  }
+  .command input[type="text"] {
+    width: 95vw
+  }
+}

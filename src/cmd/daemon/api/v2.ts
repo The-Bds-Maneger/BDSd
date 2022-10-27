@@ -69,12 +69,12 @@ app.post("/", (req, res, next) => {
   if (!req.body) req.body = {};
   (async () => {
     if (!req.body.platform) return res.status(400).json({error: "Informs a platform to start the server"});
-    else if (bedrock.includes(req.body.platform)) return bdsCore.Bedrock.startServer(req.body.platformOptions).catch(err => next(err));
-    else if (java.includes(req.body.platform)) return bdsCore.Java.startServer(req.body.platformOptions).catch(err => next(err));
-    else if (spigot.includes(req.body.platform)) return bdsCore.Spigot.startServer(req.body.platformOptions).catch(err => next(err));
-    else if (powernukkit.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).catch(err => next(err));
-    else if (paper.includes(req.body.platform)) return bdsCore.PaperMC.startServer(req.body.platformOptions).catch(err => next(err));
-    else if (pocketmine.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions).catch(err => next(err));
+    else if (bedrock.includes(req.body.platform)) return bdsCore.Bedrock.startServer(req.body.platformOptions);
+    else if (java.includes(req.body.platform)) return bdsCore.Java.startServer(req.body.platformOptions);
+    else if (spigot.includes(req.body.platform)) return bdsCore.Spigot.startServer(req.body.platformOptions);
+    else if (powernukkit.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions);
+    else if (paper.includes(req.body.platform)) return bdsCore.PaperMC.startServer(req.body.platformOptions);
+    else if (pocketmine.includes(req.body.platform)) return bdsCore.PocketmineMP.startServer(req.body.platformOptions);
     else return res.status(400).json({
       error: "Invalid platform"
     });
@@ -92,7 +92,7 @@ app.post("/", (req, res, next) => {
       data.events.on("playerUnknown", data => io.emit("playerUnknown", {id, data}));
       data.events.on("playerDisconnect", data => io.emit("playerDisconnect", {id, data}));
     }
-  });
+  }).catch(err => next(err));
 });
 
 app.put("/", (req, res) => {
