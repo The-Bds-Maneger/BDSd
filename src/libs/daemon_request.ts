@@ -1,9 +1,9 @@
-import bdsCore, { httpRequest } from "@the-bds-maneger/core";
+import { httpRequest } from "@the-bds-maneger/core-utils";
 
 export default daemonRequest;
 export function daemonRequest(host: string, socketPath: string, authKey?: string) {
   async function post(requestPath: string, body?: any) {
-    return bdsCore.utils.httpRequest.getJSON({
+    return httpRequest.getJSON({
       method: "POST",
       socket: {
         socketPath,
@@ -11,7 +11,7 @@ export function daemonRequest(host: string, socketPath: string, authKey?: string
       },
       headers: {"Content-Type": "application/json", authorization: `basic ${authKey}`},
       body: body||{}
-    }).catch(() => bdsCore.utils.httpRequest.getJSON({
+    }).catch(() => httpRequest.getJSON({
       method: "POST",
       url: host+requestPath,
       headers: {"Content-Type": "application/json"},
@@ -20,20 +20,20 @@ export function daemonRequest(host: string, socketPath: string, authKey?: string
   }
 
   async function get(requestPath: string, body?: any) {
-    return bdsCore.utils.httpRequest.getJSON({
+    return httpRequest.getJSON({
       socket: {
         socketPath,
         path: requestPath
       },
       headers: {"Content-Type": "application/json"}
-    }).catch(() => bdsCore.utils.httpRequest.getJSON({
+    }).catch(() => httpRequest.getJSON({
       url: host+requestPath,
       headers: {"Content-Type": "application/json"}
     }));
   }
 
   async function put(requestPath: string, body?: any) {
-    return bdsCore.utils.httpRequest.getJSON({
+    return httpRequest.getJSON({
       method: "PUT",
       socket: {
         socketPath,
@@ -41,7 +41,7 @@ export function daemonRequest(host: string, socketPath: string, authKey?: string
       },
       headers: {"Content-Type": "application/json"},
       body: body||{}
-    }).catch(() => bdsCore.utils.httpRequest.getJSON({
+    }).catch(() => httpRequest.getJSON({
       method: "PUT",
       url: host+requestPath,
       headers: {"Content-Type": "application/json"},
@@ -50,14 +50,14 @@ export function daemonRequest(host: string, socketPath: string, authKey?: string
   }
 
   async function stream(requestPath: string, stream?: any, method: httpRequest.requestOptions["method"] = "GET") {
-    return bdsCore.utils.httpRequest.pipeFetch({
+    return httpRequest.pipeFetch({
       stream, method,
       socket: {
         socketPath,
         path: requestPath
       },
       headers: {"Content-Type": "application/json"}
-    }).catch(() => bdsCore.utils.httpRequest.pipeFetch({
+    }).catch(() => httpRequest.pipeFetch({
       url: host+requestPath,
       stream, method,
       headers: {"Content-Type": "application/json"}
