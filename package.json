@@ -27,9 +27,9 @@
     "node": ">=14.0.0"
   },
   "scripts": {
-    "clean": "find src -type f | grep -E '\\.(d\\.t|j)s' | xargs rm -v",
-    "build": "tsc",
-    "start": "ts-node src/index.ts"
+    "clean": "node clean.mjs",
+    "build": "npm run clean && tsc",
+    "start": "npm run clean && ts-node src/index.ts"
   },
   "bin": {
     "bdsd": "./src/index.js"

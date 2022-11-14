@@ -132,7 +132,9 @@ class api {
   }
 }
 
-yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().demandCommand().strictCommands().alias("h", "help").command("background", "Run servers in background", yargs => {
+yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().demandCommand().strictCommands().alias("h", "help").command("print", "", () => {
+  return console.log("Bds Root: %s", core.platformPathManeger.bdsRoot);
+}).command("background", "Run servers in background", yargs => {
   const options = yargs.option("port", {
     type: "number",
     description: "Port to add an HTTP server for the APIs",
