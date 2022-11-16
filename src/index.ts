@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-import * as core from "@the-bds-maneger/core";
-import * as coreUtils from "@the-bds-maneger/core-utils";
 import { createReadStream } from "node:fs";
 import { format } from "node:util";
 import { createInterface as readline } from "node:readline"
 import { httpRequest } from "@the-bds-maneger/core-utils";
 import { normalizePlatform } from "./normalize";
+import * as core from "@the-bds-maneger/core";
+import * as coreUtils from "@the-bds-maneger/core-utils";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import express from "express";
 import yargs from "yargs";
@@ -15,8 +16,19 @@ import path from "node:path";
 class api {
   private readonly app = express().use(express.json(), express.urlencoded({extended: true}));
   private list: {platform: string, id: string}[] = [];
-  constructor(logStart?: string) {
+  constructor(logStart?: string, keyPath?: string) {
     const app = this.app;
+    if (keyPath) {
+      let authString: string;
+      app.use(async (req, res, next) => {
+        if (!await coreUtils.extendFs.exists(keyPath)) return next();
+        if (!authString) authString = (await fs.readFile(keyPath, "utf8")).trim();
+        const hearderAuth = String(req.headers["bds_auth64"]);
+        if (!hearderAuth) return res.status(403).json({error: "Send Auth key"});
+        if (hearderAuth.trim() !== authString) return res.status(403).json({error: "Invalid key"});
+        return next();
+      });
+    }
     app.get("/", ({res}) => {
       const serverSessions = core.globalPlatfroms.internalSessions;
       res.json(Object.keys(serverSessions).map(id => ({id, session: serverSessions[id]})).reduce((mount, data) => {
@@ -132,9 +144,26 @@ class api {
   }
 }
 
-yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().demandCommand().strictCommands().alias("h", "help").command("print", "", () => {
-  return console.log("Bds Root: %s", core.platformPathManeger.bdsRoot);
-}).command("background", "Run servers in background", yargs => {
+yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().demandCommand().strictCommands().alias("h", "help").command("print", "", async () => {
+  const ids = await core.platformPathManeger.getIds();
+  console.log("Bds Root: %s", core.platformPathManeger.bdsRoot);
+  if (Object.keys(ids).length === 0) console.log("No platform installed!");
+  else {
+    console.log("Platform IDs:");
+    for (const platform of Object.keys(ids)) {
+      console.log("  %s:", platform);
+      for (const {id} of ids[platform]) {
+        const serverPath = await core.platformPathManeger.pathControl(platform as core.platformPathManeger.bdsPlatform, {id});
+        console.log("    ID: %s, server path: '%s'", id, serverPath.serverPath);
+      }
+    }
+  }
+}).option("cert-key", {
+  type: "string",
+  alias: "C",
+  description: "certificate path to auth API requests",
+  default: path.join(core.platformPathManeger.bdsRoot, "authCert.key")
+}).command("background", "Run servers in background", async yargs => {
   const options = yargs.option("port", {
     type: "number",
     description: "Port to add an HTTP server for the APIs",
@@ -143,8 +172,14 @@ yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().d
     type: "string",
     description: "Place to store the servers boot history in case the main process is killed",
     default: path.join(core.platformPathManeger.bdsRoot, "bdsd_loads.json")
+  }).option("disable-auth", {
+    type: "boolean",
+    description: "Disable auth key file",
+    default: true
   }).parseSync();
-  const apiListen = new api(options["server-history-path"]);
+  const keyFile = path.resolve(options["cert-key"]);
+  if (!await coreUtils.extendFs.exists(keyFile)) await fs.writeFile(keyFile, crypto.randomBytes(1024).toString("base64"));
+  const apiListen = new api(options["server-history-path"], options["disable-auth"]?undefined:keyFile);
   apiListen.listen(options.port, () => console.log("Listen on", options.port));
   return {apiListen, options};
 }).command("install", "Install server", async yargs => {
@@ -188,6 +223,7 @@ yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().d
     printVersion(await httpRequest.getJSON({
       body: {version: options.version, id: options.id, platform},
       method: "PUT",
+      headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")},
       url: `${options.host}/install`
     }));
     return;
@@ -208,7 +244,7 @@ yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().d
     default: "http://localhost:5030"
   }).parseSync();
   const urlData = new URL(options.host);
-  const data = await httpRequest.getJSON<{[key: string]: core.globalPlatfroms.serverActionV2}>({url: `${urlData.protocol}//${urlData.host}/`});
+  const data = await httpRequest.getJSON<{[key: string]: core.globalPlatfroms.serverActionV2}>({url: `${urlData.protocol}//${urlData.host}/`, headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}});
   if (Object.keys(data).length === 0) return console.info("No server running!");
   Object.keys(data).forEach(id => {
     const session = data[id];
@@ -260,13 +296,13 @@ yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().d
   }).parseSync()
   const lineRead = readline(process.stdin, process.stdout);
   if (!options["local"]) {
-    if (options.id.trim().toLowerCase() === "default") options.id = (await httpRequest.getJSON({url: `${options.host}/ls`}))[options.platform.trim().toLowerCase()].find(({id}) => options.id === id)?.realID;
-    if (!(await httpRequest.getJSON(options.host))[options.id]) {
-      options.id = (await httpRequest.getJSON({url: options.host, method: "PUT", body: {platform: options.platform, id: options.id}})).id
+    if (options.id.trim().toLowerCase() === "default") options.id = (await httpRequest.getJSON({url: `${options.host}/ls`, headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}}))[options.platform.trim().toLowerCase()].find(({id}) => options.id === id)?.realID;
+    if (!(await httpRequest.getJSON({url: options.host, headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}}))[options.id]) {
+      options.id = (await httpRequest.getJSON({url: options.host, method: "PUT", headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}, body: {platform: options.platform, id: options.id}})).id
     }
-    lineRead.on("line", data => httpRequest.getJSON({method: "POST", url: options.host, body: {id: options.id, command: data}}).catch(() => {}));
+    lineRead.on("line", async data => httpRequest.getJSON({method: "POST", url: options.host, headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}, body: {id: options.id, command: data}}).catch(() => {}));
     httpRequest.pipeFetch({url: `${options.host}/log?lock=true&id=${options.id}`, stream: process.stdout}).then(() => lineRead.close());
-    const close = () => options.close?httpRequest.getJSON({method: "DELETE", url: options.host, body: {id: options.id}}).catch(() => {}):process.exit();
+    const close = async () => options.close?httpRequest.getJSON({method: "DELETE", url: options.host, headers: {bds_auth64: await fs.readFile(options["cert-key"], "utf8").catch(() => "")}, body: {id: options.id}}).catch(() => {}):process.exit();
     lineRead.once("SIGCONT", close);
     lineRead.once("SIGINT", close);
     lineRead.once("SIGTSTP", close);
