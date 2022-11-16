@@ -174,8 +174,7 @@ yargs(process.argv.slice(2)).wrap(yargs.terminalWidth()).version(false).help().d
     default: path.join(core.platformPathManeger.bdsRoot, "bdsd_loads.json")
   }).option("disable-auth", {
     type: "boolean",
-    description: "Disable auth key file",
-    default: true
+    description: "Disable auth key file"
   }).parseSync();
   const keyFile = path.resolve(options["cert-key"]);
   if (!await coreUtils.extendFs.exists(keyFile)) await fs.writeFile(keyFile, crypto.randomBytes(1024).toString("base64"));
