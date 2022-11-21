@@ -1,25 +1,23 @@
 .platformID {
-  display: flex;
+  display: grid;
   align-items: center;
-  flex-direction: row;
-  flex-wrap: wrap;
   justify-content: space-evenly;
 }
 
 .platfornCard {
-  /* height: 13vh; */
-  width: 28%;
+  min-width: 0;
   background-color: #1c1c1c;
   border-radius: 6px;
   padding: 8px;
+  transition: all 0.5s;
 }
 
 /* Server Started */
 .platfornCard[id="running"] {
-  background-color: #00ff00;
+  background-color: #00ff002b;
 }
 
 /* Server Started */
 .platfornCard[id="stoped"] {
-  background-color: #ff0000;
+  background-color: #ff00005e;
 }
