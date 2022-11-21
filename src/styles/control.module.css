@@ -1,0 +1,29 @@
+.logMain {
+  max-width: 95vw;
+  max-height: 70vh;
+  padding-left: 1.5vw;
+  display: flex;
+  justify-items: stretch;
+  flex-direction: column;
+  align-content: space-between;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logData {
+  overflow: scroll;
+  background-color: #00000087;
+  min-width: 92vw;
+  min-height: 68vh;
+  padding: 8px;
+}
+
+.logLine {
+  font-size: 13px;
+  padding-left: 10px;
+  padding-top: 4px;
+}
+
+.commandForm input[type="text"] {
+  width: 80vw;
+}

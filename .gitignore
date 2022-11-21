@@ -1,6 +1,6 @@
 # Ingore node folders
 node_modules/
-*.tgz
+.next/
 
 # Typescript
 src/**/*.d.ts
