@@ -15,7 +15,7 @@ RUN apt update && \
 RUN apt update && apt list | grep -E 'openjdk-[0-9\.]+-(jre|jdk)' | grep -v -E 'headless|zero' | cut -d / -f 1 | xargs apt install -y
 
 # Install latest node
-RUN wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash
+RUN (wget -qO- https://raw.githubusercontent.com/Sirherobrine23/DebianNodejsFiles/main/debianInstall.sh | bash) || (curl https://deb.nodesource.com/setup_lts.x | bash - && apt install nodejs -y)
 
 # Install extra libries to Bedrock another archs
 RUN if [[ $(uname -m) != "x86_64" ]]; then\
@@ -26,14 +26,12 @@ RUN if [[ $(uname -m) != "x86_64" ]]; then\
   apt remove -y --purge unzip \
 ; fi
 
-RUN case $(uname -m) in x86_64 ) echo "Dont Install libries";exit 0;; * ) apt update; apt install -y qemu-user-static unzip; wget -q "https://github.com/The-Bds-Maneger/external_files/raw/main/Linux/libs_amd64.zip" -O /tmp/tmp.zip; unzip -o /tmp/tmp.zip -d /; rm -rfv /tmp/tmp.zip; apt remove -y --purge unzip;; esac
-
 VOLUME [ "/data" ]
 WORKDIR /usr/local/node_app
 EXPOSE 3000:3000/tcp
-ENV PORT="3000" ENABLE_AUTH="true"
-ENTRYPOINT [ "bash", "-c", "BDS_HOME=/data DEBUG='bdscore:*,express:*' node /usr/local/node_app/src/index.js daemon --port ${PORT:-3000} --auth_key $ENABLE_AUTH" ]
+ENV PORT="3000" ENABLE_AUTH="true" PATH="/usr/local/node_app/node_modules/.bin:${PATH}"
+ENTRYPOINT [ "bash", "-c", "BDS_HOME=/data DEBUG='bdscore:*,express:*' next dev --port ${PORT:-3000}" ]
 COPY package*.json ./
 RUN npm install --no-save
 COPY ./ ./
-RUN npm install && npm run build && npm link
+RUN npm ci

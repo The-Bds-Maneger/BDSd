@@ -1,7 +1,16 @@
 .platformID {
-  display: grid;
-  align-items: center;
-  justify-content: space-evenly;
+  justify-items: stretch;
+  align-content: space-around;
+  flex-wrap: wrap;
+  flex-direction: row;
+  justify-content: center;
+}
+
+@media only screen and (min-width: 800px) {
+  .platformID {
+    display: flex;
+    margin-top: 10px;
+  }
 }
 
 .platfornCard {
@@ -10,6 +19,7 @@
   border-radius: 6px;
   padding: 8px;
   transition: all 0.5s;
+  margin: 0.2%;
 }
 
 /* Server Started */

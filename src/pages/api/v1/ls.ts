@@ -14,7 +14,7 @@ export type statusReturn = {
 
 export async function getStatusAndIDs(): Promise<statusReturn> {
   const ids = await core.platformPathManeger.getIds();
-  const data = Object.keys(ids).reduce((mount, platform: core.platformPathManeger.bdsPlatform) => {
+  const data = Object.keys(ids).sort().reduce((mount, platform: core.platformPathManeger.bdsPlatform) => {
     if (!mount[platform]) mount[platform] = [];
     ids[platform].filter(({id}) => id !== "default").forEach(({id}) => {
       const data = core.globalPlatfroms.internalSessions[id];

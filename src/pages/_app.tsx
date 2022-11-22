@@ -17,6 +17,8 @@ export default function MainAPP({ Component, pageProps }: AppProps) {
   return <>
     <Head>
       <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+      <link href="https://raw.githubusercontent.com/The-Bds-Maneger/Bds-Maneger-html-assets/main/images/mcpe.png" rel="icon" type="image/x-icon" />
+      <link href="https://raw.githubusercontent.com/The-Bds-Maneger/Bds-Maneger-html-assets/main/images/mcpe.ico" rel="icon" type="image/x-icon" />
       <title>Loading ...</title>
     </Head>
     <nav className={NavbarCSS["navigation"]}>

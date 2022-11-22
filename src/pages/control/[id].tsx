@@ -1,5 +1,5 @@
 import { InferGetStaticPropsType, NextPageContext } from "next";
-import { globalPlatfroms } from "@the-bds-maneger/core";
+import { globalPlatfroms, platformPathManeger } from "@the-bds-maneger/core";
 import { useEffect, useRef, useState } from "react";
 import ansi_to_html from "ansi-to-html";
 import controlCss from "../../styles/control.module.css";
@@ -13,16 +13,30 @@ const conevert = new ansi_to_html({
 export async function getServerSideProps(request: NextPageContext) {
   if (typeof request.query.id !== "string") throw new Error("Invalid ID");
   const correct = {...(globalPlatfroms.internalSessions[request.query.id]), events: undefined, serverCommand: undefined};
+  const ids = await platformPathManeger.getIds();
+  let platform = Object.keys(ids).find(platform => ids[platform as platformPathManeger.bdsPlatform].some(({id}) => id === request.query.id as string));
   return {
     props: {
+      data: JSON.parse(JSON.stringify(correct)) as typeof correct,
       id: request.query.id,
-      data: JSON.parse(JSON.stringify(correct)) as typeof correct
+      platform: platform||null,
     },
   }
 }
 
 export default function Control(props: InferGetStaticPropsType<typeof getServerSideProps>) {
-  if (Object.keys(props.data).length === 0) return <><h1>No ID</h1></>;
+  if (Object.keys(props.data).length === 0) return <div>
+    <h1>Platform not started</h1>
+    <div>
+      <button onClick={async () => {
+        await fetch("/api/v1", {
+          method: "PUT",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({id: props.id, platform: props.platform})
+        });
+      }}>Start</button>
+    </div>
+  </div>;
   const [logData, updateLoadData] = useState<string[]>([]);
   useEffect(() => {
     let renderClose = false;
@@ -57,8 +71,8 @@ export default function Control(props: InferGetStaticPropsType<typeof getServerS
     <div className={controlCss["logMain"]}>
       <div className={controlCss["logData"]}>
         {logData.map((data, key) => {
-          return <div className={controlCss["logLine"]}>
-            <div key={key+data.slice(0, 8)} dangerouslySetInnerHTML={{__html: conevert.toHtml(data)}}></div>
+          return <div className={controlCss["logLine"]} key={key+"_log_line"}>
+            <div dangerouslySetInnerHTML={{__html: conevert.toHtml(data)}}></div>
           </div>
         })}
       </div>
